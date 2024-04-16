@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
         - name: react-app
-          image:  manidocker1248/react-app:latest
+          #image:  manidocker1248/react-app:latest
+          image:  DOCKER_IMAGE
           imagePullPolicy: Always
           ports:
             - containerPort: 80
