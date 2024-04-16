@@ -1,16 +1,22 @@
-name: Build and Deploy
+name: Build and Push Docker Image
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
+      - main  # Replace "main" with the branch you want to trigger the workflow for
 
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
 
     - name: Build Docker image
       run: docker build -t manidocker1248/react-app:latest .
