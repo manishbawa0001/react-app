@@ -16,7 +16,6 @@ spec:
     spec:
       containers:
         - name: react-app
-          #image:  manidocker1248/react-app:latest
           image:  DOCKER_IMAGE
           imagePullPolicy: Always
           ports:
@@ -46,24 +45,8 @@ spec:
               cpu: "256m"
               memory: "256Mi"
             limits:
-              cpu: "512m"
+              cpu: "500m"
               memory: "512M"
-
----
-
-apiVersion: autoscaling/v1
-kind: HorizontalPodAutoscaler
-metadata:
-  name: react-app
-  namespace: react-app
-spec:
-  maxReplicas: 10
-  minReplicas: 2
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: react-app
-  targetCPUUtilizationPercentage: 50
 
 ---
 
@@ -74,14 +57,14 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      environment: test
+      name: react-app
   policyTypes:
     - Ingress
   ingress:
     - from:
         - namespaceSelector:
             matchLabels:
-              namespace: react-app
+              name: react-app
         - podSelector:
             matchLabels:
               role: monitoring
