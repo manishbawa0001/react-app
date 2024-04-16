@@ -15,6 +15,7 @@ spec:
         namespace: react-app
     spec:
       containers:
+        #image
         - name: react-app
           image:  DOCKER_IMAGE
           imagePullPolicy: Always
