@@ -81,12 +81,12 @@ spec:
     matchLabels:
       name: react-app
   policyTypes:
-  - Ingress
+    - Ingress
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: react-app
-    - podSelector:
-        matchLabels:
-          role: monitoring
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: react-app
+      - podSelector:
+          matchLabels:
+            role: monitoring
