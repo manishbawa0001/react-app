@@ -84,9 +84,10 @@ spec:
     - Ingress
   ingress:
     - from:
-      - namespaceSelector:
-          matchLabels:
-            name: react-app
-      - podSelector:
-          matchLabels:
-            role: monitoring
+        - namespaceSelector:
+            matchLabels:
+              name: react-app
+        - podSelector:
+            matchLabels:
+              role: monitoring
+
