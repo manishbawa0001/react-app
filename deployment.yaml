@@ -63,7 +63,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: react-app
-  targetCPUUtilizationPercentage: 1
+  targetCPUUtilizationPercentage: 50
 
 ---
 
