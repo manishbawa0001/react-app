@@ -1,58 +1,53 @@
-name: Deploy to ECR
+name: Build and Deploy to S3
 
 on:
- 
-  push:
-    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      env-name:
+        description: environment name to deploy to.
+        required: true
+        type: environment
 
-env:
-  ECR_REPOSITORY: react-app
-  EKS_CLUSTER_NAME: bitsassignment 
-  AWS_REGION: us-east-1
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.inputs.env-name }}
+  cancel-in-progress: true
 
 jobs:
-  
-  build:
-    
-    name: Deployment
+  upload-to-s3:
+    environment: 
+      name: ${{ inputs.env-name }}
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ secrets.AWS_REGION }}
+        
+      - name: Create env file
+        run: |
+          echo REACT_APP_NODEREAL_KEY=${{  secrets.REACT_APP_NODEREAL_KEY }} > .env
+          echo REACT_APP_SDK_API_KEY=${{  secrets.REACT_APP_SDK_API_KEY }} >> .env
+          echo REACT_APP_SOLANA_QUICKNODE_SWAP=${{  secrets.REACT_APP_SOLANA_QUICKNODE_SWAP }} >> .env
 
-    - name: Set short git commit SHA
-      id: commit
-      uses: prompt/actions-commit-hash@v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 18
+          
+      - name: Install and Build
+        run: |
+         npm i --legacy-peer-deps
+         npm run build
+        shell: bash
 
-    - name: Check out code
-      uses: actions/checkout@v2
-    
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{env.AWS_REGION}}
+      - name: Deploy app build to S3 bucket
+        run: |
+          aws s3 rm s3://${{ secrets.S3_BUCKET_NAME }} --recursive
+          aws s3 cp ./build/ s3://${{ secrets.S3_BUCKET_NAME }} --recursive
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
-
-    - name: Build, tag, and push image to Amazon ECR
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}        
-        IMAGE_TAG: ${{ steps.commit.outputs.short }}
-      run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-    - name: Update kube config
-      run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
-
-    - name: Deploy to EKS
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}        
-        IMAGE_TAG: ${{ steps.commit.outputs.short }}
-      run: |
-        sed -i.bak "s|DOCKER_IMAGE|$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG|g" deployment.yaml && \
-        kubectl apply -f deployment.yaml -n react-app
-        kubectl apply -f service.yaml -n react-app 
+      - name: Invalidate cloudfront cache
+        run: |
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.CF_DISTRIBUTION }} --paths "/*"
